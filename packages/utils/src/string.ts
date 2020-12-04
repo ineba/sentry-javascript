@@ -101,3 +101,96 @@ export function isMatchingPattern(value: string, pattern: RegExp | string): bool
   }
   return false;
 }
+
+/**
+ * Convert a Unicode string to a string in which each 16-bit unit occupies only one byte, which makes it safe to use as
+ * input to `btoa`.
+ *
+ * Copied from https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/btoa#Unicode_strings.
+ *
+ * @param unicodeString The string to convert
+ * @returns A btoa-compatible encoding of the string
+ */
+function unicodeToBinary(unicodeString: string): string {
+  const codeUnits = new Uint16Array(unicodeString.length);
+  for (let i = 0; i < codeUnits.length; i++) {
+    codeUnits[i] = unicodeString.charCodeAt(i);
+  }
+  return String.fromCharCode(...new Uint8Array(codeUnits.buffer));
+}
+
+/**
+ * Convert a binary string (such as one would get from `atob`) into a Unicode string.
+ *
+ * Copied from https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/btoa#Unicode_strings.
+ *
+ * @param binaryString The string to convert
+ * @returns A btoa-compatible encoding of the string
+ */
+function binaryToUnicode(binaryString: string): string {
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return String.fromCharCode(...new Uint16Array(bytes.buffer));
+}
+
+/**
+ * Convert a base64 string to a Unicode (UTF-16) string.
+ *
+ * @param base64String The string to decode.
+ * @throws SentryError (because using the logger creates a circular dependency)
+ * @returns A Unicode string
+ */
+export function base64ToUnicode(base64String: string): string {
+  try {
+    // browsers have atob built in
+    if ('atob' in getGlobalObject()) {
+      // atob takes base64 (written in (a)scii) to (b)inary
+      return binaryToUnicode(atob(base64String));
+    }
+
+    // Buffer only exists in node
+    if ('Buffer' in getGlobalObject()) {
+      return Buffer.from(base64String, 'base64').toString('utf16le');
+    }
+  } catch (oO) {
+    // pass
+  }
+
+  throw new SentryError(
+    `Unable to convert string from base64: ${
+      base64String.length > 256 ? `${base64String.slice(0, 256)}...` : base64String
+    }`,
+  );
+}
+
+/**
+ * Convert a Unicode (UTF-16) string to a base64 string.
+ *
+ * @param unicodeString The string to encode
+ * @throws SentryError (because using the logger creates a circular dependency)
+ * @returns A base64-encoded version of the string
+ */
+export function UnicodeToBase64(unicodeString: string): string {
+  try {
+    // browsers have btoa built in
+    if (btoa !== undefined) {
+      // btoa takes (b)inary to base64 (written in (a)scii)
+      return btoa(unicodeToBinary(unicodeString));
+    }
+
+    // Buffer only exists in node
+    if (Buffer !== undefined) {
+      return Buffer.from(unicodeString, 'utf16le').toString('base64');
+    }
+  } catch (oO) {
+    // pass
+  }
+
+  throw new SentryError(
+    `Unable to convert string to base64: ${
+      unicodeString.length > 256 ? `${unicodeString.slice(0, 256)}...` : unicodeString
+    }`,
+  );
+}
