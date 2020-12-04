@@ -196,3 +196,35 @@ export function UnicodeToBase64(unicodeString: string): string {
     }`,
   );
 }
+
+// let unicode = 'dogs are great ♥️🐶';
+let unicode = JSON.stringify({
+  environment: 'dogpark🐶🌳',
+  public_key: 'dogsarebadatkeepingsecrets',
+  release: 'off.leash.park',
+  trace_id: '0908201304152013',
+});
+let binary = unicodeToBinary(unicode);
+let base64 = Buffer.from(binary, 'binary').toString('base64');
+
+console.log(unicode);
+console.log(binary);
+console.log(base64);
+
+binary = Buffer.from(base64, 'base64').toString('binary');
+unicode = binaryToUnicode(binary);
+
+console.log(binary);
+console.log(unicode);
+
+console.log('------');
+
+console.log(unicode);
+
+base64 = Buffer.from(unicode, 'utf16le').toString('base64');
+
+console.log(base64);
+
+unicode = Buffer.from(base64, 'base64').toString('utf16le');
+
+console.log(unicode);
