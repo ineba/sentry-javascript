@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
+import { Span as SpanInterface, SpanContext, TraceHeaders, Transaction } from '@sentry/types';
 import { dropUndefinedKeys, timestampWithMs, uuid4 } from '@sentry/utils';
 
 import { SpanStatus } from './spanstatus';
@@ -244,6 +244,19 @@ export class Span implements SpanInterface {
       sampledString = this.sampled ? '-1' : '-0';
     }
     return `${this.traceId}-${this.spanId}${sampledString}`;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public getTraceHeaders(): TraceHeaders {
+    const traceparent = this.toTraceparent();
+    const tracestate = this.transaction?.tracestate;
+
+    return {
+      'sentry-trace': traceparent,
+      ...(tracestate && { tracestate }),
+    };
   }
 
   /**
