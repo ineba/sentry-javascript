@@ -1,3 +1,5 @@
+import { getGlobalObject } from './compat';
+import { SentryError } from './error';
 import { isRegExp, isString } from './is';
 
 /**
